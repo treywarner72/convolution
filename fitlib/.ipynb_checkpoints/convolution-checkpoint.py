@@ -1,5 +1,6 @@
 import scipy
 import numpy as np
+from .fitting import Fit_function
 
 class Convolution:
     def __init__(self,mother, max_mother, bins):
@@ -15,6 +16,7 @@ class Convolution:
         dist = sum([self.c[i] * scipy.stats.norm.pdf(val + self.max_mother-mu, self.d_x[i],sigma) for i in range(len(self.d_x))])
         return n / np.trapz(dist, val) * dist
 
-def tanh_bin(bin_c,bin_min,bin_max, scale,assymtote):
-    b = (bin_max-bin_min-assymtote*bin_c)/np.tanh(bin_c/scale)
-    return bin_min + b*np.tanh(np.arange(0,bin_c+1)/scale) + assymtote * np.arange(0,bin_c+1)
+    @staticmethod
+    def tanh_bin(bin_c,bin_min,bin_max, scale,assymtote):
+        b = (bin_max-bin_min-assymtote*bin_c)/np.tanh(bin_c/scale)
+        return bin_min + b*np.tanh(np.arange(0,bin_c+1)/scale) + assymtote * np.arange(0,bin_c+1)
