@@ -1,6 +1,7 @@
 import numpy as np
 from inspect import signature
 import iminuit
+from iminuit import cost
 from .utils import flatten
 from tabulate import tabulate
 import matplotlib.pyplot as plt
@@ -292,6 +293,19 @@ class Fitter:
 
         return ret
 
+    def MLE(self, ncall=None):
+        start = [p.start for p in self.fit_params]
+        limits = [(p.min, p.max) for p in self.fit_params]
+        
+        self.minimizer = iminuit.Minuit(cost.UnbinnedNLL(self.arr, self._pdf), *start)
+        self.minimizer.limits = limits
+        ret = self.minimizer.migrad(ncall)
+
+        for i in range(len(self.fit_params)):
+            self.fit_params[i].value = self.minimizer.values[i]
+            self.fit_params[i].error = self.minimizer.errors[i]
+        return ret
+    
     def values(self):
         "Returns the fit values in the structure of the pdf array"
         return [ {list(signature(pdf.fcn).parameters.keys())[i+1]: pdf._params[i].value for i in range(len(pdf._params))} for pdf in self.pdf]
@@ -316,7 +330,7 @@ class Fitter:
 
                 if isinstance(values, list) and isinstance(errors, list):
                     # Handle list of values and errors
-                    for idx, (value, error) in enumerate(zip(values, errors)):
+                    for idx, (value, error) in enumerate(zip(flatten(values),flatten(errors))):
                         params.append({
                             "Parameter": f"{name}[{idx}]",
                             "Value": value,
