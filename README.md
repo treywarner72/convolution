@@ -10,8 +10,8 @@ The library implements convolutional methods to model long-tailed distributions 
 
 ## Fitlib
 
-The fits in the paper are performed with a custom fitting library `fitlib`. Documentation is provided in the source code and the demonstration `notebooks/fitlib_demo.ipynb.`
+The fits in the paper are performed with a custom fitting library `fitlib`. Documentation is provided in the source code and the demonstration `fitlib_demo.ipynb.`
 
 ## Reproducing Results
 
-Monte carlo data may be generated and fit to reproduce Figures 7 and 8 in the paper with `notebooks/monte_carlo.ipynb`.
+Monte carlo data may be generated and fit to reproduce Figures 7 and 8 in the paper with `monte_carlo.ipynb`.
