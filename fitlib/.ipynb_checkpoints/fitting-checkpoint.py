@@ -293,6 +293,25 @@ class Fitter:
 
         return ret
 
+    def _r2(self, *args):
+        "Returns a Chi^2 value given parameter values. This function is minimized with iminuit"
+        diff = self.y - self._pdf(self.x, *args)
+        return (diff**2).sum()
+    
+    def r2(self,ncall=None):
+        start = [p.start for p in self.fit_params]
+        limits = [(p.min, p.max) for p in self.fit_params]
+        
+        self.minimizer = iminuit.Minuit(self._r2, *start)
+        self.minimizer.limits = limits
+        ret = self.minimizer.migrad(ncall)
+
+        for i in range(len(self.fit_params)):
+            self.fit_params[i].value = self.minimizer.values[i]
+            self.fit_params[i].error = self.minimizer.errors[i]
+
+        return ret
+
     def MLE(self, ncall=None):
         start = [p.start for p in self.fit_params]
         limits = [(p.min, p.max) for p in self.fit_params]
