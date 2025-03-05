@@ -5,6 +5,7 @@ from iminuit import cost
 from .utils import flatten
 from tabulate import tabulate
 import matplotlib.pyplot as plt
+import boost_histogram as bh
 
 class Fit_param:
     """
@@ -212,14 +213,8 @@ class Fitter:
 
     The following are set with the bin function or when a Fitter is created using Fitter.binned(arr, bins, range)
     ----------
-    y : numpy.ndarray
-        The counts in each histogram bin.
-    x : numpy.ndarray
-        The centers of the histogram bins.
-    widths : numpy.ndarray
-        The widths of the histogram bins.
-    err_b : numpy.ndarray
-        The statistical errors (sqrt of counts) for each bin.
+    hist: boost hitogram
+        A histogram representing the data
 
     Methods
     -------
@@ -241,12 +236,13 @@ class Fitter:
         self.arr = arr[(arr > self.range[0]) & (arr < self.range[1])]
 
     def bin(self,bins):
-        y, edges = np.histogram(self.arr, range=self.range, bins=bins)
-        self.y = np.array(y)
-        edges = np.array(edges)
-        self.x = 0.5*(edges[:-1] + edges[1:])
-        self.widths = edges[1:] - edges[:-1]
-        self.err_b = np.sqrt(self.y)
+        if np.isscalar(bins):
+            self.hist = bh.Histogram(bh.axis.Regular(bins, self.range[0], self.range[1]))
+        else:
+            self.hist = bh.Histogram(bh.axis.Variable(bins))
+        self.hist.fill(self.arr)
+        self.x = self.hist.axes[0].centers
+        self.y = self.hist.values()
         return self
 
     # An alternate to __init__ that bins a histogram by default.
@@ -255,7 +251,6 @@ class Fitter:
         ret = Fitter(arr, range)
         return ret.bin(bins)
     
-
     # pdf is a faux-variable, where fit_params is updated to include the total amount of parameters whenever pdf is updated
     
     @property
@@ -274,11 +269,18 @@ class Fitter:
         
         return sum([fcn.call(x) for fcn in self.pdf_l])
 
+    # pdf multiplied by bin width for binned fits
+    def gen_y(self, x):
+        return self._pdf(x) * np.mean(self.hist.axes[0].widths)
+
     def _chi2(self, *args):
         "Returns a Chi^2 value given parameter values. This function is minimized with iminuit"
-        diff = self.y - self.widths * self._pdf(self.x, *args)
-        return (diff[self.err_b > 0]**2 / self.err_b[self.err_b > 0]**2).sum()
+        values = self.hist.values()
+        errors = np.sqrt(values)
+        diff = values - self.hist.axes[0].widths * self._pdf(self.hist.axes[0].centers, *args)
+        return (diff[errors > 0]**2 / errors[errors > 0]**2).sum()
     
+    # Performs the chi^2 minimization fit on a binned histogram
     def chi2(self,ncall=None):
         start = [p.start for p in self.fit_params]
         limits = [(p.min, p.max) for p in self.fit_params]
@@ -294,10 +296,11 @@ class Fitter:
         return ret
 
     def _r2(self, *args):
-        "Returns a Chi^2 value given parameter values. This function is minimized with iminuit"
-        diff = self.y - self._pdf(self.x, *args)
+        "Returns a r^2 value given parameter values. This function is minimized with iminuit"
+        diff = self.hist.values() - self._pdf(self.hist.axes[0].centers, *args)
         return (diff**2).sum()
     
+    # Performs the r^2 minimization fit on a binned histogram
     def r2(self,ncall=None):
         start = [p.start for p in self.fit_params]
         limits = [(p.min, p.max) for p in self.fit_params]
@@ -312,6 +315,7 @@ class Fitter:
 
         return ret
 
+    # Performs a MLE fit on unbinned data
     def MLE(self, ncall=None):
         start = [p.start for p in self.fit_params]
         limits = [(p.min, p.max) for p in self.fit_params]
@@ -378,10 +382,10 @@ class Fitter:
 
     def plot_data(self):
         """Plots the histogram centers and entries of the data"""
-        plt.errorbar(self.x, self.y, yerr = self.err_b, linestyle='', fmt='.', ecolor='black', color='black',elinewidth=1, capsize=0 )
+        plt.errorbar(self.hist.axes[0].centers, self.hist.values(), yerr = np.sqrt(self.hist.values()), linestyle='', fmt='.', ecolor='black', color='black',elinewidth=1, capsize=0 )
     
     def plot_fit(self):
         """Plots a curve of the function estimate"""
         x = np.linspace(self.range[0],self.range[1],1000)
-        plt.plot(x, self._pdf(x) * self.widths.mean())
+        plt.plot(self.hist.axes[0].centers, self._pdf(self.hist.axes[0].centers) * self.hist.axes[0].widths.mean())
 
