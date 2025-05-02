@@ -6,6 +6,7 @@ from .utils import flatten
 from tabulate import tabulate
 import matplotlib.pyplot as plt
 import boost_histogram as bh
+import scipy
 
 class Fit_param:
     """
@@ -243,6 +244,7 @@ class Fitter:
         self.hist.fill(self.arr)
         self.x = self.hist.axes[0].centers
         self.y = self.hist.values()
+        self.y_norm = self.y / np.trapz(self.y, self.x)
         return self
 
     # An alternate to __init__ that bins a histogram by default.
@@ -328,6 +330,29 @@ class Fitter:
             self.fit_params[i].value = self.minimizer.values[i]
             self.fit_params[i].error = self.minimizer.errors[i]
         return ret
+
+    def _binnednll(self, *args):
+        """Returns the negative log-likelihood for binned maximum likelihood estimation. This function is minimized with iminuit."""
+        expected = self.hist.axes[0].widths * self._pdf(self.hist.axes[0].centers, *args) 
+        expected = np.clip(expected, 1e-9, None)
+        nll = (expected - self.y * np.log(expected)).sum()
+        return nll
+
+    # Performs the chi^2 minimization fit on a binned histogram
+    def BinnedMLE(self, ncall=None):
+        """Performs binned maximum likelihood estimation (MLE)."""
+        start = [p.start for p in self.fit_params]
+        limits = [(p.min, p.max) for p in self.fit_params]
+        
+        self.minimizer = iminuit.Minuit(self._binnednll, *start)
+        self.minimizer.limits = limits
+        ret = self.minimizer.migrad(ncall)
+
+        for i in range(len(self.fit_params)):
+            self.fit_params[i].value = self.minimizer.values[i]
+            self.fit_params[i].error = self.minimizer.errors[i]
+
+        return ret
     
     def values(self):
         "Returns the fit values in the structure of the pdf array"
@@ -380,9 +405,9 @@ class Fitter:
             ))
             print()
 
-    def plot_data(self):
+    def plot_data(self, **options):
         """Plots the histogram centers and entries of the data"""
-        plt.errorbar(self.hist.axes[0].centers, self.hist.values(), yerr = np.sqrt(self.hist.values()), linestyle='', fmt='.', ecolor='black', color='black',elinewidth=1, capsize=0 )
+        plt.errorbar(self.hist.axes[0].centers, self.hist.values(), yerr = np.sqrt(self.hist.values()), linestyle='', fmt='.', ecolor='black', color='black',elinewidth=1, capsize=0, **options )
     
     def plot_fit(self):
         """Plots a curve of the function estimate"""

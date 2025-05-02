@@ -88,7 +88,7 @@ class Convolution:
         return (n / integral) * dist
 
     @staticmethod
-    def tanh_bin(n_bins, m_min, m_max, alpha, beta):
+    def tanh_bin(n_bins, m_min, m_max, beta, alpha):
         """
         Returns a list of bin edges subject to:
         n_bins : number of bins
@@ -97,5 +97,5 @@ class Convolution:
         alpha : the asymptote, the constant that the bin widths approach as n approaches n_bins
         beta : the scale, or how fast the bin widths shrink to approach alpha, where the smaller beta is, the faster the bin widths approach alpha
         """
-        A = (m_max - m_min - alpha * bin_c) / np.tanh(n_bins / beta)
+        A = (m_max - m_min - alpha * n_bins) / np.tanh(n_bins / beta)
         return m_min + A * np.tanh(np.arange(0, n_bins+1)/beta) + alpha * np.arange(0, n_bins+1)
