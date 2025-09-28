@@ -2,16 +2,13 @@
 
 This repository contains the code required to reproduce the results presented in the paper:
 
-> Trey Warner, Michael Sokoloff, and Thomas Boettcher. *"The Convolutional Method for Fitting Long-Tailed Distributions"*, December 2024.
-
-The library implements convolutional methods to model long-tailed distributions resulting from processes like radiative tails and precisely determine the peak position.
+> Trey Warner, Thomas Boettcher, and Michael Sokoloff. *"The Convolutional Method for Fitting Long-Tailed Distributions"*
 
 ---
 
-## Fitlib
+## Fitle
 
-The fits in the paper are performed with a custom fitting library `fitlib`. Documentation is provided in the source code and the demonstration `fitlib_demo.ipynb.`
+[fitle](https://github.com/trey-warner/fitle) is my Python library for building and fitting statistical models in a symbolic way.  
 
-## Reproducing Results
+The convolutional method described in this paper is implemented using fitle.
 
-Monte carlo data may be generated and fit to reproduce Figures 7 and 8 in the paper with `monte_carlo.ipynb`.
